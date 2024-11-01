@@ -1,7 +1,8 @@
+'use client'
 import { useState } from "react";
-import axios from "axios";
+
 import Link from "next/link";
-import { useRouter } from "next/router";
+import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -19,15 +20,41 @@ export function LoginForm() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const router = useRouter();
+ 
 
+  function validade() { 
+    if(!email && !password) {
+      setError('Todos os campos devem ser obrigatórios.')
+      return false;
+    }
+    if (!/\S+@\S+\.\S+/.test(email)) { 
+      setError('Você precisa de um email válido.');
+      return false;
+    }
+    if(password.length < 6) {
+      setError('Precisar ser maior do que seis')
+      return false; 
+    }
+    return true;
+  }
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    try {
-      const response = await axios.post("http://localhost:5000/login", { email, password });
-      localStorage.setItem("token", response.data.token);
-      router.push("/dashboard"); // Redireciona para a página do dashboard
-    } catch (err) {
-      setError("Invalid credentials");
+    if(validade()) { 
+      try {
+        const response = await fetch("http://localhost:5000/login", { 
+          method: 'POST', 
+          headers: {
+            'Content-Type': 'application/json'
+          }, 
+          body: JSON.stringify({ email, password})
+        })
+        const data = await response.json(); 
+       
+        localStorage.setItem("token", data.token);
+        router.push("/dashboard"); // Redireciona para a página do dashboard
+      } catch (err) {
+        setError("Invalid credentials");
+      }
     }
   };
 
@@ -46,11 +73,11 @@ export function LoginForm() {
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
-                type="email"
+                type="text"
                 placeholder="m@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                required
+                
               />
             </div>
             <div className="grid gap-2">
@@ -65,7 +92,6 @@ export function LoginForm() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                required
               />
             </div>
             {error && <p className="text-red-500">{error}</p>}
